@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Küchenplan</title>
+<meta name="description" content="Rezepte und Wochenplan der Familie Jaeger">
+<meta name="theme-color" content="#2f6f4a" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141b16" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Küchenplan">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Karla:wght@400;500;700&display=swap">
+<style>
+/* Layout: Kopf mit Personenwahl, Tabs (Woche / Rezepte), Wochentage als Kartenstapel, Gemüse-Zähler als Seitenleiste */
+:root{
+  --bg:#f3f6f1; --surface:#ffffff; --ink:#1d2a22; --muted:#5d6d62; --line:#d9e2d7;
+  --basil:#2f6f4a; --basil-soft:#e2efe5; --tomato:#c8462b; --tomato-soft:#f8e3dd; --corn:#b98a10; --corn-soft:#f6edd0;
+  --display:"Young Serif", Georgia, serif; --body:"Karla", system-ui, sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141b16; --surface:#1c251f; --ink:#e6eee7; --muted:#9db0a2; --line:#2e3b32;
+  --basil:#7cc496; --basil-soft:#20382a; --tomato:#ee8a72; --tomato-soft:#3d2520; --corn:#e3bc4f; --corn-soft:#3a3218; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141b16; --surface:#1c251f; --ink:#e6eee7; --muted:#9db0a2; --line:#2e3b32;
+  --basil:#7cc496; --basil-soft:#20382a; --tomato:#ee8a72; --tomato-soft:#3d2520; --corn:#e3bc4f; --corn-soft:#3a3218; color-scheme:dark}
+*{box-sizing:border-box}
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);-webkit-text-size-adjust:100%}
+body{margin:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+.install{border:1px dashed var(--basil);color:var(--basil);background:none;border-radius:8px;padding:6px 12px;font-weight:700}
+.imp{display:flex;gap:8px;align-items:end}
+.imp label{flex:1}
+.impmsg{font-size:13.5px;color:var(--muted);margin:-6px 0 0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+h1,h2,h3{font-family:var(--display);font-weight:400;text-wrap:balance;margin:0}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.1}
+h2{font-size:24px}
+h3{font-size:19px;line-height:1.25}
+header{display:flex;flex-wrap:wrap;gap:16px;align-items:end;justify-content:space-between;margin-bottom:20px}
+.sub{color:var(--muted);margin:4px 0 0}
+.label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.who{display:flex;flex-direction:column;gap:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,summary:focus-visible{outline:2px solid var(--basil);outline-offset:2px}
+.pill{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-weight:500}
+.pill[aria-pressed="true"]{background:var(--basil);border-color:var(--basil);color:var(--surface)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:20px;overflow-x:auto}
+.tab{border:0;background:none;white-space:nowrap;padding:10px 14px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--basil)}
+.notice{background:var(--corn-soft);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:15px}
+.weekbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.weekbar .ctrl{display:flex;gap:6px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;font-weight:500}
+.btn.primary{background:var(--basil);border-color:var(--basil);color:var(--surface)}
+.btn:disabled{opacity:.5;cursor:default}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+.days{display:flex;flex-direction:column;gap:12px}
+.day{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;grid-template-columns:64px minmax(0,1fr);gap:14px}
+.day.warn{border-color:var(--tomato)}
+.dname{font-family:var(--display);font-size:22px;line-height:1}
+.ddate{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 8px}
+.tag{font-size:12.5px;border-radius:6px;padding:2px 8px;background:var(--bg);color:var(--muted);font-weight:500}
+.tag.meat{background:var(--tomato-soft);color:var(--tomato)}
+.tag.veg{background:var(--basil-soft);color:var(--basil)}
+.tag.kid{background:var(--corn-soft);color:var(--corn)}
+.fit{display:flex;gap:4px;flex-wrap:wrap}
+.fit span{font-size:12px;border:1px solid var(--basil);color:var(--basil);border-radius:999px;padding:1px 8px}
+.fit span.fav{background:var(--basil);color:var(--surface)}
+.vote{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.vbtn{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:5px 12px;font-weight:700}
+.vbtn.yes[aria-pressed="true"]{background:var(--basil);border-color:var(--basil);color:var(--surface)}
+.vbtn.no[aria-pressed="true"]{background:var(--tomato);border-color:var(--tomato);color:var(--surface)}
+.voters{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+.voter{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--bg);color:var(--muted)}
+.voter.y{background:var(--basil-soft);color:var(--basil)}
+.voter.n{background:var(--tomato-soft);color:var(--tomato)}
+details.rec summary{cursor:pointer;color:var(--basil);font-weight:700;font-size:14px;margin-top:6px}
+.recbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:16px;margin-top:8px;font-size:15px}
+@media (max-width:560px){.recbody{grid-template-columns:minmax(0,1fr)}}
+.recbody ul,.recbody ol{margin:4px 0 0;padding-left:20px}
+.side{display:flex;flex-direction:column;gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+.big{font-family:var(--display);font-size:40px;line-height:1;font-variant-numeric:tabular-nums}
+.bar{height:10px;border-radius:5px;background:var(--bg);overflow:hidden;margin:10px 0}
+.bar i{display:block;height:100%;background:var(--basil)}
+.vlist{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.vlist span{font-size:12.5px;background:var(--basil-soft);color:var(--basil);border-radius:6px;padding:2px 7px}
+.small{font-size:14px;color:var(--muted)}
+.shop{font-size:14.5px;margin:8px 0 0;padding-left:18px;max-height:340px;overflow:auto}
+.filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.card .recbody{grid-template-columns:minmax(0,1fr)}
+.wish{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.wbtn{border:1px solid var(--corn);background:none;color:var(--corn);border-radius:8px;padding:4px 10px;font-weight:700;font-size:14px}
+.wbtn[aria-pressed="true"]{background:var(--corn);color:var(--surface)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--muted);margin-bottom:12px;align-items:center}
+.wk{background:var(--corn-soft);border-radius:12px;padding:14px 16px}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);padding:20px;width:min(640px,calc(100vw - 32px));max-height:90vh}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+#editForm{display:flex;flex-direction:column;gap:12px}
+#editForm label{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:14px;min-width:0}
+#editForm input,#editForm select,#editForm textarea{font:inherit;font-weight:400;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+#editForm .checks label{flex-direction:row;align-items:center;gap:8px;font-weight:500}
+#editForm .checks input{width:auto}
+.row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.row3{grid-template-columns:minmax(0,1fr)}}
+.checks{display:flex;gap:16px;flex-wrap:wrap}
+.dlgacts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn.danger{background:var(--tomato);border-color:var(--tomato);color:var(--surface)}
+.acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.abtn{border:1px solid var(--line);background:none;border-radius:8px;padding:4px 10px;font-size:13.5px;font-weight:500;color:var(--muted)}
+.abtn.on{border-color:var(--tomato);color:var(--tomato)}
+.abtn:disabled{opacity:.5;cursor:default}
+.fit span.no{border-color:var(--tomato);color:var(--tomato);text-decoration:line-through}
+.card.off{opacity:.6}
+:root{--sea:#24689e;--sea-soft:#deeaf4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sea:#8cc0ea;--sea-soft:#1c2e3d}}
+:root[data-theme="dark"]{--sea:#8cc0ea;--sea-soft:#1c2e3d}
+.tag.fish{background:var(--sea-soft);color:var(--sea)}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s ease}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="label">Familie Jaeger · Abendessen Mo–Fr</div>
+      <h1>Küchenplan</h1>
+      <p class="sub">Höchstens 30 Minuten unter der Woche, Fleisch an zwei Tagen, einmal Lachs, Beilagen im Wechsel.</p>
+    </div>
+    <div class="who">
+      <button class="install" id="installBtn" hidden>Als App installieren</button>
+      <span class="label" id="whoLabel">Ich bin</span>
+      <div class="chips" id="who" role="group" aria-labelledby="whoLabel"></div>
+    </div>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-woche" aria-selected="true">Wochenplan</button>
+    <button class="tab" role="tab" id="tab-rezepte" aria-selected="false">Rezepte</button>
+    <button class="tab" role="tab" id="tab-regeln" aria-selected="false">Wer mag was</button>
+  </div>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <section id="view-woche">
+    <div class="weekbar">
+      <div>
+        <h2 id="weekTitle">Diese Woche</h2>
+        <div class="small" id="weekRange"></div>
+      </div>
+      <div class="ctrl">
+        <button class="btn" id="prevWeek">Diese Woche</button>
+        <button class="btn" id="nextWeek">Nächste Woche</button>
+        <button class="btn primary" id="regen">Neuen Plan vorschlagen</button>
+      </div>
+    </div>
+    <div class="legend">
+      <span>Passt zu: <span class="fit" style="display:inline-flex"><span class="fav">Liebling</span><span>passt</span></span></span>
+      <span>Bei 2× „Nein“ kann das Gericht getauscht werden.</span>
+    </div>
+    <div class="grid">
+      <div class="days" id="days"></div>
+      <aside class="side">
+        <div class="panel">
+          <div class="label">Kathrins 30-Gemüse-Ziel</div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px"><span class="big" id="vegCount">0</span><span class="small">von 30 Sorten im Plan</span></div>
+          <div class="bar"><i id="vegBar" style="width:0%"></i></div>
+          <div class="vlist" id="vegList"></div>
+          <p class="small" id="vegTip" style="margin:10px 0 0"></p>
+        </div>
+        <div class="panel">
+          <div class="label">Beilagen-Mix</div>
+          <div class="vlist" id="sideMix"></div>
+        </div>
+        <div class="wk">
+          <div class="label">Wochenende / Vorkochen</div>
+          <p class="small" style="margin:6px 0 0" id="weekendTip"></p>
+        </div>
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <div class="label">Einkaufsliste</div>
+            <button class="btn" id="copyShop">Kopieren</button>
+          </div>
+          <ul class="shop" id="shop"></ul>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="view-rezepte" hidden>
+    <div class="filters" id="filters"></div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section id="view-regeln" hidden>
+    <div class="cards" id="rules"></div>
+  </section>
+</div>
+
+<dialog id="editDlg" aria-labelledby="editTitle">
+<form id="editForm" method="dialog">
+  <h2 id="editTitle">Rezept bearbeiten</h2>
+  <div class="imp" id="impRow"><label>Rezept von einer Website übernehmen<input name="url" id="f-url" type="url" inputmode="url" placeholder="https://www.chefkoch.de/rezepte/…"></label><button type="button" class="btn" id="impBtn">Laden</button></div>
+  <p class="impmsg" id="impMsg">Link einfügen, „Laden“ tippen, dann prüfen und speichern.</p>
+  <label>Name<input name="n" id="f-n" required></label>
+  <div class="row3">
+    <label>Minuten<input name="t" id="f-t" type="number" min="5" step="5"></label>
+    <label>Beilage<select name="side" id="f-side"><option>Nudeln</option><option>Kartoffeln</option><option>Reis</option><option>Brot</option><option>Spätzle</option></select></label>
+    <label>Hauptzutat<select name="p" id="f-p"><option value="veg">vegetarisch</option><option value="haehnchen">Hähnchen</option><option value="rinderhack">Rinderhack</option><option value="schwein">Schweinefilet</option><option value="rind">Rind</option><option value="lachs">Lachs / Fisch</option></select></label>
+  </div>
+  <label>Fleisch-Option (bei vegetarischen Gerichten)<input name="flex" id="f-flex" placeholder="z. B. mit Hähnchenstreifen für Jil"></label>
+  <div class="checks"><label><input type="checkbox" name="kid" id="f-kid"> Kinderliebling</label><label><input type="checkbox" name="we" id="f-we"> Nur fürs Wochenende</label></div>
+  <label>Gemüse, mit Komma getrennt (zählt für Kathrins 30er-Ziel)<input name="veg" id="f-veg"></label>
+  <label>Zutaten, eine pro Zeile<textarea name="zut" id="f-zut" rows="6"></textarea></label>
+  <label>Zubereitung, ein Schritt pro Zeile<textarea name="st" id="f-st" rows="5"></textarea></label>
+  <div class="dlgacts">
+    <button type="button" class="btn" id="resetRec">Original wiederherstellen</button>
+    <button type="button" class="btn" id="delRec">Rezept löschen</button>
+    <button type="button" class="btn danger" id="delConfirm">Wirklich löschen</button>
+    <span style="flex:1"></span>
+    <button type="button" class="btn" id="cancelEdit">Abbrechen</button>
+    <button type="button" class="btn primary" id="saveEdit">Speichern</button>
+  </div>
+</form>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+const PEOPLE=["Marc","Kathrin","Julie","Jil"];
+const DAYS=["Mo","Di","Mi","Do","Fr"];
+const PROT={veg:"vegetarisch",haehnchen:"Hähnchen",rinderhack:"Rinderhack",schwein:"Schweinefilet",rind:"Rind",lachs:"Lachs"};
+// Beilage-Gruppe für die Rotation: Nudeln, Kartoffeln, Reis, Brot, Spätzle
+const BASE=[
+{id:"r01",n:"Chicken im Cornflakesmantel mit Drillingen & Gurkensalat",t:30,side:"Kartoffeln",p:"haehnchen",kid:1,veg:["Gurke","Radieschen"],
+ zut:["600 g Hähnchenbrustfilet","100 g Cornflakes","2 Eier","3 EL Mehl","1 TL Paprikapulver","800 g Drillinge","1 Gurke","1 Bund Radieschen","150 g Joghurt"],
+ st:["Drillinge halbieren, in Salzwasser 15 Min. kochen, dann in der Pfanne anbraten.","Filets in Streifen schneiden, salzen, erst in Mehl, dann Ei, dann zerbröselten Cornflakes mit Paprika wenden.","In reichlich Öl 3–4 Min. pro Seite goldbraun braten.","Gurke und Radieschen hobeln, mit Joghurt, Salz, Pfeffer anmachen."]},
+{id:"r02",n:"Hähnchen-Gemüse-Pfanne mit Reis",t:25,side:"Reis",p:"haehnchen",veg:["Brokkoli","Paprika","Karotte","Zucchini","Frühlingszwiebel","Ingwer"],
+ zut:["500 g Hähnchenbrustfilet","250 g Basmatireis","1 Brokkoli","1 rote Paprika","2 Karotten","1 Zucchini","3 Frühlingszwiebeln","1 Stück Ingwer","4 EL Sojasauce","1 EL Honig"],
+ st:["Reis kochen.","Hähnchen in Streifen scharf anbraten, herausnehmen.","Gemüse klein schneiden und 5–6 Min. bissfest braten, Ingwer reiben und dazugeben.","Hähnchen zurück, mit Sojasauce und Honig glasieren."]},
+{id:"r03",n:"Spaghetti Bolognese",t:30,side:"Nudeln",p:"rinderhack",veg:["Zwiebel","Karotte","Staudensellerie","Tomate"],
+ zut:["500 g Rinderhack","500 g Spaghetti","1 Zwiebel","2 Karotten","2 Stangen Staudensellerie","1 Dose gehackte Tomaten (800 g)","2 EL Tomatenmark","Parmesan"],
+ st:["Zwiebel, Karotte, Sellerie fein würfeln.","Hack krümelig braten, Gemüse 3 Min. mitbraten, Tomatenmark anrösten.","Tomaten dazu, 15 Min. köcheln, würzen.","Spaghetti kochen, mit Parmesan servieren."]},
+{id:"r04",n:"Hamburger mit Salat",t:30,side:"Brot",p:"rinderhack",kid:1,flex:"Halloumi-Burger für Kathrin und Julie",veg:["Eisbergsalat","Tomate","Gurke","Rote Zwiebel"],
+ zut:["500 g Rinderhack","1 Pck. Halloumi (optional)","4–6 Burger-Brötchen","Eisbergsalat","2 Tomaten","1 Gurke","1 rote Zwiebel","Cheddar-Scheiben","Ketchup, Senf"],
+ st:["Hack salzen, pfeffern, 4 flache Patties formen.","Patties 3 Min. pro Seite braten, Käse auflegen; Halloumi-Scheiben daneben braten.","Brötchen kurz rösten.","Mit Salat, Tomate, Gurke, Zwiebel belegen."]},
+{id:"r05",n:"Blechpizza mit buntem Gemüse",t:25,side:"Brot",p:"veg",kid:1,flex:"eine Hälfte mit Kochschinken",veg:["Tomate","Paprika","Zucchini","Mais","Rucola"],
+ zut:["2 Rollen Pizzateig (Kühlregal)","1 Dose passierte Tomaten","200 g Mozzarella","1 Paprika","1 kleine Zucchini","1 kleine Dose Mais","1 Handvoll Rucola","100 g Kochschinken (optional)","Oregano"],
+ st:["Ofen auf 220 °C Umluft.","Teig aufs Blech, mit gewürzter Tomatensauce bestreichen.","Gemüse dünn schneiden, belegen, Mozzarella darüber; eine Hälfte mit Schinken.","12–15 Min. backen, Rucola darüber."]},
+{id:"r06",n:"Schupfnudeln mit Sauerkraut",t:20,side:"Kartoffeln",p:"veg",kid:1,flex:"mit Speckwürfeln für Fleischfans",veg:["Sauerkraut","Zwiebel","Petersilie"],
+ zut:["800 g Schupfnudeln (Kühlregal)","500 g Sauerkraut","1 Zwiebel","100 g Speckwürfel (optional)","2 EL Butter","Petersilie","Kümmel"],
+ st:["Zwiebel würfeln, in Butter glasig braten (Speck separat auslassen).","Schupfnudeln goldbraun mitbraten.","Abgetropftes Sauerkraut 5 Min. mitbraten, mit Kümmel würzen.","Mit Petersilie servieren, Speck zum Darüberstreuen."]},
+{id:"r07",n:"Kartoffelbrei mit Spiegelei & Rahmspinat",t:25,side:"Kartoffeln",p:"veg",kid:1,veg:["Spinat","Zwiebel","Knoblauch"],
+ zut:["1 kg mehligkochende Kartoffeln","200 ml Milch","2 EL Butter","8 Eier","450 g Blattspinat (TK)","1 Zwiebel","1 Knoblauchzehe","100 ml Sahne","Muskat"],
+ st:["Kartoffeln schälen, 20 Min. kochen, mit heißer Milch und Butter stampfen, Muskat.","Zwiebel und Knoblauch anschwitzen, Spinat und Sahne zugeben, 5 Min. köcheln.","Spiegeleier braten."]},
+{id:"r08",n:"Gulasch mit Spätzle",t:120,we:1,side:"Spätzle",p:"rind",kid:1,veg:["Zwiebel","Paprika","Tomate"],
+ zut:["1 kg Rindergulasch","500 g Zwiebeln","2 rote Paprika","2 EL Tomatenmark","2 EL Paprikapulver edelsüß","500 ml Rinderbrühe","500 g Spätzle"],
+ st:["Fleisch portionsweise scharf anbraten.","Viele Zwiebeln dazu, goldbraun schmoren, Tomatenmark und Paprikapulver anrösten.","Mit Brühe ablöschen, 90 Min. zugedeckt schmoren, Paprikastreifen 20 Min. vor Ende dazu.","Spätzle kochen. Tipp: doppelte Menge kochen und einfrieren."]},
+{id:"r09",n:"Lasagne",t:75,we:1,side:"Nudeln",p:"rinderhack",kid:1,veg:["Zwiebel","Karotte","Tomate","Zucchini"],
+ zut:["500 g Rinderhack","12 Lasagneplatten","1 Zwiebel","1 Karotte","1 Zucchini","800 g gehackte Tomaten","50 g Butter, 50 g Mehl, 600 ml Milch","150 g geriebener Käse"],
+ st:["Ragù aus Hack, Gemüsewürfeln und Tomaten 20 Min. köcheln.","Béchamel aus Butter, Mehl, Milch rühren.","Abwechselnd schichten, mit Käse abschließen.","40 Min. bei 180 °C backen. Lässt sich gut am Sonntag für Montag vorbereiten."]},
+{id:"r10",n:"Ofen-Gnocchi mit Gemüse & Feta",t:30,side:"Kartoffeln",p:"veg",veg:["Zucchini","Paprika","Tomate","Aubergine","Rote Zwiebel"],
+ zut:["800 g Gnocchi (Kühlregal)","1 Zucchini","1 Paprika","250 g Kirschtomaten","1 kleine Aubergine","1 rote Zwiebel","200 g Feta","Olivenöl, Oregano"],
+ st:["Ofen auf 220 °C.","Gemüse würfeln, mit Gnocchi, Öl, Salz, Oregano aufs Blech.","20 Min. rösten, einmal wenden.","Feta zerbröseln, weitere 5 Min. backen."]},
+{id:"r11",n:"Pasta mit Ricotta, Spinat & Zitrone",t:20,side:"Nudeln",p:"veg",veg:["Spinat","Tomate","Knoblauch"],
+ zut:["500 g Penne","250 g Ricotta","200 g Babyspinat","250 g Kirschtomaten","2 Knoblauchzehen","1 Bio-Zitrone","Parmesan"],
+ st:["Pasta kochen, etwas Kochwasser aufheben.","Knoblauch und halbierte Tomaten in Öl anbraten, Spinat zusammenfallen lassen.","Ricotta, Zitronenabrieb und Kochwasser einrühren, mit Pasta mischen."]},
+{id:"r12",n:"Gebratener Reis mit Ei & Gemüse",t:20,side:"Reis",p:"veg",veg:["Karotte","Paprika","Frühlingszwiebel","Pak Choi","Mais"],
+ zut:["300 g Reis (am besten vom Vortag)","4 Eier","2 Karotten","1 Paprika","3 Frühlingszwiebeln","2 Pak Choi","1 kleine Dose Mais","Sojasauce, Sesamöl"],
+ st:["Gemüse klein schneiden, im Wok 3 Min. braten.","Reis dazu, kräftig mitbraten.","Eier an den Rand schlagen, stocken lassen und unterrühren.","Mit Sojasauce und Sesamöl abschmecken."]},
+{id:"r13",n:"Chili con Carne mit Reis",t:30,side:"Reis",p:"rinderhack",veg:["Zwiebel","Paprika","Kidneybohnen","Mais","Tomate"],
+ zut:["500 g Rinderhack","250 g Reis","1 Zwiebel","2 Paprika","1 Dose Kidneybohnen","1 Dose Mais","800 g gehackte Tomaten","Kreuzkümmel, Chili","Saure Sahne"],
+ st:["Reis kochen.","Hack mit Zwiebel anbraten, Gewürze anrösten.","Paprika, Tomaten, Bohnen, Mais dazu, 15 Min. köcheln.","Mit saurer Sahne servieren; für Kinder Chili sparsam."]},
+{id:"r14",n:"Hähnchen-Wraps",t:20,side:"Brot",p:"haehnchen",veg:["Eisbergsalat","Tomate","Gurke","Avocado","Mais"],
+ zut:["500 g Hähnchenbrustfilet","8 Weizentortillas","Eisbergsalat","2 Tomaten","1 Gurke","1 Avocado","1 kleine Dose Mais","150 g Joghurt oder Schmand","geriebener Käse"],
+ st:["Hähnchen in Streifen mit Paprikapulver anbraten.","Gemüse schneiden, Avocado zerdrücken.","Tortillas kurz erwärmen, jeder belegt selbst."]},
+{id:"r15",n:"Ofenkartoffeln mit Kräuterquark & Rohkost",t:30,side:"Kartoffeln",p:"veg",veg:["Radieschen","Gurke","Karotte","Kohlrabi","Paprika","Schnittlauch"],
+ zut:["1 kg kleine Kartoffeln","500 g Quark","Schnittlauch & Petersilie","1 Bund Radieschen","1 Gurke","2 Karotten","1 Kohlrabi","1 Paprika"],
+ st:["Kartoffeln halbieren, mit Öl und Salz 25 Min. bei 220 °C backen.","Quark mit Kräutern, Salz und etwas Milch glatt rühren.","Rohkost in Sticks schneiden."]},
+{id:"r16",n:"Linsen-Bolognese",t:25,side:"Nudeln",p:"veg",veg:["Rote Linsen","Karotte","Staudensellerie","Zwiebel","Tomate"],
+ zut:["150 g rote Linsen","500 g Spaghetti","1 Zwiebel","2 Karotten","2 Stangen Staudensellerie","800 g gehackte Tomaten","2 EL Tomatenmark","Parmesan"],
+ st:["Gemüse fein würfeln, anschwitzen, Tomatenmark anrösten.","Linsen, Tomaten und 300 ml Wasser dazu, 15 Min. köcheln.","Würzen, mit Spaghetti servieren."]},
+{id:"r17",n:"Paprika-Rahm-Geschnetzeltes mit Reis",t:25,side:"Reis",p:"haehnchen",veg:["Paprika","Zwiebel","Lauch"],
+ zut:["500 g Hähnchenbrustfilet","250 g Reis","2 Paprika","1 Zwiebel","1 Stange Lauch","200 ml Sahne","1 TL Paprikapulver"],
+ st:["Reis kochen.","Hähnchen in Streifen anbraten, herausnehmen.","Zwiebel, Lauch, Paprika 5 Min. braten, mit Sahne ablöschen.","Fleisch zurück, 3 Min. ziehen lassen."]},
+{id:"r18",n:"Käsespätzle mit Röstzwiebeln & Feldsalat",t:25,side:"Spätzle",p:"veg",kid:1,veg:["Zwiebel","Feldsalat"],
+ zut:["800 g Spätzle (Kühlregal)","200 g Bergkäse gerieben","3 Zwiebeln","2 EL Butter","150 g Feldsalat","Essig, Öl, Senf"],
+ st:["Zwiebeln in Ringen in Butter langsam goldbraun rösten.","Spätzle in der Pfanne erhitzen, Käse schichtweise einschmelzen.","Feldsalat mit Senf-Vinaigrette anmachen."]},
+{id:"r19",n:"Schweinefilet mit Bratkartoffeln & Bohnen",t:30,side:"Kartoffeln",p:"schwein",selten:1,veg:["Grüne Bohnen","Zwiebel"],
+ zut:["600 g Schweinefilet","800 g festkochende Kartoffeln (vorgekocht)","400 g grüne Bohnen","1 Zwiebel","Butter"],
+ st:["Kartoffeln in Scheiben, mit Zwiebel knusprig braten.","Filet in Medaillons, 3 Min. pro Seite braten, ruhen lassen.","Bohnen 8 Min. kochen, in Butter schwenken."]},
+{id:"r20",n:"Rinderhack-Kartoffel-Pfanne",t:30,side:"Kartoffeln",p:"rinderhack",veg:["Lauch","Paprika","Zwiebel","Tomate"],
+ zut:["400 g Rinderhack","800 g festkochende Kartoffeln","1 Stange Lauch","1 Paprika","1 Zwiebel","2 Tomaten","Schmand"],
+ st:["Kartoffeln klein würfeln, 15 Min. in der Pfanne braten.","Hack separat anbraten, Zwiebel, Lauch, Paprika mitbraten.","Alles mischen, Tomatenwürfel dazu, mit Schmand servieren."]},
+{id:"r21",n:"Tortellini mit Brokkoli & Zitronensahne",t:15,side:"Nudeln",p:"veg",veg:["Brokkoli","Zucchini"],
+ zut:["750 g Tortellini (Käse/Spinat)","1 Brokkoli","1 Zucchini","200 ml Sahne","1 Bio-Zitrone","Parmesan"],
+ st:["Brokkoliröschen die letzten 4 Min. mit den Tortellini kochen.","Zucchini anbraten, Sahne und Zitronenabrieb dazu.","Alles mischen, Parmesan darüber."]},
+{id:"r22",n:"Hähnchen-Reis-Bowl",t:25,side:"Reis",p:"haehnchen",veg:["Edamame","Gurke","Karotte","Rotkohl","Avocado","Frühlingszwiebel"],
+ zut:["500 g Hähnchenbrustfilet","250 g Sushi- oder Basmatireis","200 g Edamame (TK)","1 Gurke","2 Karotten","¼ Rotkohl","1 Avocado","2 Frühlingszwiebeln","Sojasauce, Sesam"],
+ st:["Reis kochen, Edamame 4 Min. garen.","Hähnchen braten, mit Sojasauce ablöschen, in Scheiben schneiden.","Gemüse fein schneiden, alles in Schalen anrichten, Sesam darüber."]},
+{id:"r23",n:"Shakshuka mit frischem Brot",t:25,side:"Brot",p:"veg",veg:["Tomate","Paprika","Zwiebel","Spinat","Knoblauch"],
+ zut:["8 Eier","800 g stückige Tomaten","2 Paprika","1 Zwiebel","2 Knoblauchzehen","100 g Babyspinat","Kreuzkümmel, Paprikapulver","100 g Feta","1 Baguette"],
+ st:["Zwiebel, Knoblauch, Paprika 6 Min. braten, Gewürze anrösten.","Tomaten dazu, 8 Min. einkochen, Spinat unterheben.","Mulden drücken, Eier hineinschlagen, zugedeckt 6 Min. stocken lassen.","Feta darüber, mit Brot servieren."]},
+{id:"r24",n:"Frikadellen mit Kartoffelbrei & Karottengemüse",t:30,side:"Kartoffeln",p:"rinderhack",kid:1,veg:["Karotte","Zwiebel","Kohlrabi"],
+ zut:["500 g Rinderhack","1 altes Brötchen","1 Ei","1 Zwiebel","1 kg mehligkochende Kartoffeln","200 ml Milch","4 Karotten","1 Kohlrabi","Butter"],
+ st:["Kartoffeln kochen, zu Brei stampfen.","Hack mit eingeweichtem Brötchen, Ei, Zwiebel und Senf verkneten, 8 Frikadellen braten.","Karotten und Kohlrabi in Stifte schneiden, in Butter mit etwas Wasser 8 Min. dünsten."]},
+{id:"r25",n:"Ofenlachs mit Zitronenkartoffeln & Brokkoli",t:30,side:"Kartoffeln",p:"lachs",veg:["Brokkoli","Kirschtomate","Dill"],
+ zut:["4 Lachsfilets (à ca. 150 g)","800 g Drillinge","1 Brokkoli","250 g Kirschtomaten","1 Bio-Zitrone","1 Bund Dill","Olivenöl","150 g Joghurt"],
+ st:["Ofen auf 200 °C Umluft. Drillinge halbieren, mit Öl und Salz aufs Blech, 10 Min. vorbacken.","Brokkoli und Tomaten dazu, Lachs mittig legen, salzen, mit Zitronenscheiben belegen.","12–15 Min. backen, bis der Lachs innen glasig-rosa ist.","Joghurt mit Dill und Zitronensaft verrühren und dazu reichen."]},
+{id:"r26",n:"Lachs-Pasta mit Spinat & Zitrone",t:20,side:"Nudeln",p:"lachs",veg:["Spinat","Zucchini","Knoblauch"],
+ zut:["500 g Tagliatelle","400 g Lachsfilet ohne Haut","200 g Babyspinat","1 Zucchini","1 Knoblauchzehe","200 ml Kochsahne","1 Bio-Zitrone","Parmesan"],
+ st:["Pasta kochen.","Lachs würfeln, kurz anbraten und herausnehmen.","Knoblauch und Zucchiniwürfel anbraten, Sahne und Zitronenabrieb dazu, Spinat zusammenfallen lassen.","Lachs und Pasta unterheben, mit Parmesan servieren."]},
+{id:"r27",n:"Teriyaki-Lachs mit Reis & Gurkensalat",t:25,side:"Reis",p:"lachs",veg:["Pak Choi","Gurke","Frühlingszwiebel","Karotte"],
+ zut:["4 Lachsfilets","250 g Basmati- oder Sushireis","2 Pak Choi","1 Gurke","2 Frühlingszwiebeln","1 Karotte","4 EL Sojasauce","2 EL Honig","1 EL Reisessig","Sesam"],
+ st:["Reis kochen.","Lachs auf der Hautseite 4 Min. braten, wenden, mit Sojasauce und Honig glasieren.","Pak Choi halbieren und 3 Min. mitbraten.","Gurke und Karotte dünn hobeln, mit Reisessig und Sesam anmachen."]}
+];
+let R=BASE.slice(), BY={}, overrides={}, dislikes=[];
+function rebuild(){
+  const base=BASE.map(r=>overrides[r.id]?Object.assign({},overrides[r.id],{id:r.id}):r);
+  const custom=Object.values(overrides).filter(o=>o.custom&&!BASE.some(b=>b.id===o.id));
+  R=base.concat(custom);BY=Object.fromEntries(R.map(r=>[r.id,r]));
+}
+rebuild();
+const dislikedBy=id=>dislikes.filter(d=>d.recipe===id).map(d=>d.person);
+const DEFAULT_PLANS={"2026-W44":["r10","r02","r26","r24","r05"]};
+const isFish=r=>r.p==="lachs";
+const isMeat=r=>r.p!=="veg"&&r.p!=="lachs";
+
+function fit(r){
+  const meat=isMeat(r), many=r.veg.length>=5;
+  return {
+    Marc: meat||r.flex? ["fav", meat?"Fleisch":"mit Fleisch-Option"]:isFish(r)?["ok","Fisch"]:["ok","vegetarisch"],
+    Kathrin: isFish(r)? ["fav","Fisch, leicht und gesund"]: many&&!meat? ["fav","viel Gemüse, ohne Fleisch"]: meat? ["ok","zählt als Fleischtag"]: many? ["fav","viel Gemüse"]:["ok",""],
+    Julie: r.kid? ["fav","Lieblingsgericht"]: isFish(r)? ["ok","Fisch"]: !meat? ["fav","vegetarisch"]:["ok","isst auch Fleisch"],
+    Jil: r.kid? ["fav","Lieblingsgericht"]: isFish(r)? ["ok","Fisch"]: meat? ["fav","Fleisch"]: r.flex? ["ok","mit Fleisch-Option"]:["ok",""]
+  };
+}
+
+// ---------- Zustand ----------
+let me=null; try{me=localStorage.getItem("kp-me")}catch(e){}
+if(!PEOPLE.includes(me)) me=null;
+let weekOffset=0, plans={}, votes=[], wishes=[], db=null, dbReady=false;
+let protFilter="alle";
+
+function mondayOf(off){const d=new Date();d.setHours(12,0,0,0);const wd=(d.getDay()+6)%7;d.setDate(d.getDate()-wd+7*off);return d}
+function isoKey(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y=t.getUTCFullYear();const w=Math.ceil(((t-Date.UTC(y,0,1))/864e5+1)/7);return y+"-W"+String(w).padStart(2,"0")}
+const fmt=d=>d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"});
+function hash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function rng(seed){let a=seed;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const wishCount=id=>wishes.filter(w=>w.recipe===id).length;
+
+function valid(ids){
+  const rs=ids.map(i=>BY[i]);
+  if(rs.filter(isMeat).length>2) return false;
+  if(rs.filter(isFish).length>1) return false;
+  for(let i=1;i<rs.length;i++) if(rs[i].side===rs[i-1].side) return false;
+  return true;
+}
+function score(ids){
+  const rs=ids.map(i=>BY[i]);const v=new Set(rs.flatMap(r=>r.veg));
+  const sides=new Set(rs.map(r=>r.side)).size;
+  let s=v.size+sides*2+rs.reduce((a,r)=>a+wishCount(r.id)*3+(r.kid?1:0)-(r.selten?3:0),0);
+  if(rs[4]&&rs[4].kid) s+=3; // Freitag Kinderliebling
+  if(!rs.some(r=>r.kid)) s-=10;
+  if(rs.some(isFish)) s+=6;
+  return s;
+}
+function suggestPool(){const ok=R.filter(r=>!r.we&&!dislikedBy(r.id).length);return ok.length>=8?ok:R.filter(r=>!r.we)}
+function generate(seed){
+  const rand=rng(seed), pool=suggestPool();let best=null,bs=-1e9;
+  for(let k=0;k<600;k++){
+    const order=pool.map(r=>[r,Math.pow(rand(),1/(1+wishCount(r.id)*2))]).sort((a,b)=>b[1]-a[1]).map(x=>x[0].id);
+    const pick=[];
+    for(const id of order){if(pick.length===5)break;const t=[...pick,id];if(valid(t))pick.push(id)}
+    if(pick.length<5) continue;
+    const s=score(pick);if(s>bs){bs=s;best=pick}
+  }
+  return best||R.filter(r=>!r.we).slice(0,5).map(r=>r.id);
+}
+function currentPlan(){const k=isoKey(mondayOf(weekOffset));const p=plans[k]||DEFAULT_PLANS[k];return p&&p.every(id=>BY[id])?p:generate(hash(k))}
+
+// ---------- Rendering ----------
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+function fitHtml(r){const f=fit(r),dl=dislikedBy(r.id);return '<div class="fit">'+PEOPLE.map(p=>dl.includes(p)?`<span class="no" title="schmeckt nicht">${p}</span>`:`<span class="${f[p][0]==="fav"?"fav":""}" title="${esc(f[p][1])}">${p}</span>`).join("")+"</div>"}
+function actions(r){
+  const mine=me&&dislikedBy(r.id).includes(me), on=dbReady&&me;
+  return `<div class="acts"><button class="abtn ${mine?"on":""}" data-dislike="${r.id}" aria-pressed="${!!mine}" ${on?"":"disabled"}>${mine?"Abgewählt, wieder zulassen":"Schmeckt mir nicht"}</button><button class="abtn" data-edit="${r.id}" ${dbReady?"":"disabled"}>Bearbeiten</button></div>`;
+}
+function tags(r){
+  return `<div class="meta"><span class="tag">${r.t} Min.</span><span class="tag">${r.side}</span>`+
+  `<span class="tag ${isMeat(r)?"meat":isFish(r)?"fish":"veg"}">${PROT[r.p]}</span>`+(r.flex?`<span class="tag">Option: ${esc(r.flex)}</span>`:"")+
+  (r.kid?'<span class="tag kid">Kinderliebling</span>':"")+(r.selten?'<span class="tag">selten</span>':"")+(r.we?'<span class="tag kid">Wochenende</span>':"")+"</div>";
+}
+function recDetails(r){
+  return `<details class="rec"><summary>Rezept (4 Portionen)</summary><div class="recbody"><div><div class="label">Zutaten</div><ul>${r.zut.map(z=>`<li>${esc(z)}</li>`).join("")}</ul></div><div><div class="label">Zubereitung</div><ol>${r.st.map(z=>`<li>${esc(z)}</li>`).join("")}</ol></div></div></details>`;
+}
+function renderWho(){
+  document.getElementById("who").innerHTML=PEOPLE.map(p=>`<button class="pill" aria-pressed="${p===me}" data-me="${p}">${p}</button>`).join("");
+}
+function renderWeek(){
+  const mon=mondayOf(weekOffset), key=isoKey(mon), plan=currentPlan();
+  const fri=new Date(mon);fri.setDate(fri.getDate()+4);
+  document.getElementById("weekTitle").textContent=(weekOffset===0?"Diese Woche":"Nächste Woche")+" · KW "+key.slice(-2);
+  document.getElementById("weekRange").textContent=fmt(mon)+" – "+fmt(fri)+(plans[key]?"":" · Vorschlag, noch nicht gespeichert");
+  document.getElementById("prevWeek").disabled=weekOffset===0;
+  document.getElementById("nextWeek").disabled=weekOffset===1;
+  const wv=votes.filter(v=>v.week===key);
+  document.getElementById("days").innerHTML=plan.map((id,i)=>{
+    const r=BY[id], d=new Date(mon);d.setDate(d.getDate()+i);
+    const dv=wv.filter(v=>v.day===i&&v.recipe===id);
+    const mine=dv.find(v=>v.person===me);
+    const no=dv.filter(v=>v.v<0).length, yes=dv.filter(v=>v.v>0).length;
+    const can=dbReady&&me;
+    return `<article class="day ${no>=2?"warn":""}"><div><div class="dname">${DAYS[i]}</div><div class="ddate">${fmt(d)}</div></div>
+    <div style="min-width:0"><h3>${esc(r.n)}</h3>${tags(r)}${fitHtml(r)}${recDetails(r)}${actions(r)}
+    <div class="vote">
+      <button class="vbtn yes" data-vote="1" data-day="${i}" aria-pressed="${mine&&mine.v>0?"true":"false"}" ${can?"":"disabled"}>Ja</button>
+      <button class="vbtn no" data-vote="-1" data-day="${i}" aria-pressed="${mine&&mine.v<0?"true":"false"}" ${can?"":"disabled"}>Nein</button>
+      ${no>=2?`<button class="btn" data-swap="${i}" ${dbReady?"":"disabled"}>Gericht tauschen</button>`:""}
+      <span class="small">${yes} Ja · ${no} Nein</span>
+      <div class="voters">${PEOPLE.map(p=>{const v=dv.find(x=>x.person===p);return `<span class="voter ${v?(v.v>0?"y":"n"):""}">${p}</span>`}).join("")}</div>
+    </div></div></article>`;
+  }).join("");
+  // Gemüse
+  const veg=[...new Set(plan.flatMap(id=>BY[id].veg))].sort((a,b)=>a.localeCompare(b,"de"));
+  document.getElementById("vegCount").textContent=veg.length;
+  document.getElementById("vegBar").style.width=Math.min(100,veg.length/30*100)+"%";
+  document.getElementById("vegList").innerHTML=veg.map(v=>`<span>${esc(v)}</span>`).join("");
+  const extra=R.filter(r=>!plan.includes(r.id)&&!r.we).map(r=>[r,r.veg.filter(v=>!veg.includes(v)).length]).sort((a,b)=>b[1]-a[1]).slice(0,2);
+  document.getElementById("vegTip").textContent=`Noch ${Math.max(0,30-veg.length)} bis 30: Obst, Nüsse, Kräuter und Salat zum Frühstück und Mittag zählen mit. Mehr neue Sorten bringen z. B. ${extra.map(([r,n])=>r.n+" (+"+n+")").join(" oder ")}.`;
+  const sides={};plan.forEach(id=>sides[BY[id].side]=(sides[BY[id].side]||0)+1);
+  document.getElementById("sideMix").innerHTML=Object.entries(sides).map(([s,n])=>`<span>${s} ×${n}</span>`).join("")+`<span>${plan.filter(id=>isMeat(BY[id])).length}× Fleisch</span><span>${plan.filter(id=>isFish(BY[id])).length}× Fisch</span>`;
+  const weR=R.filter(r=>r.we);
+  document.getElementById("weekendTip").textContent=weR.map(r=>r.n+" ("+Math.round(r.t/15)*15+" Min.)").join(" und ")+" brauchen länger. Am Wochenende kochen, Reste einfrieren und unter der Woche aufwärmen.";
+  document.getElementById("shop").innerHTML=plan.map((id,i)=>`<li><strong>${DAYS[i]}:</strong> ${BY[id].zut.map(esc).join(", ")}</li>`).join("");
+}
+function renderCards(){
+  const opts=["alle","vegetarisch","Fleisch","Fisch","Kinderliebling","Wochenende","Abgewählt"];
+  document.getElementById("filters").innerHTML=opts.map(o=>`<button class="pill" aria-pressed="${o===protFilter}" data-filter="${o}">${o==="alle"?"Alle "+R.length:o}</button>`).join("")+(dbReady?'<button class="btn primary" id="newRec" style="margin-left:auto">Neues Rezept</button>':"");
+  const list=R.filter(r=>protFilter==="alle"||(protFilter==="vegetarisch"&&!isMeat(r))||(protFilter==="Fleisch"&&isMeat(r))||(protFilter==="Fisch"&&isFish(r))||(protFilter==="Kinderliebling"&&r.kid)||(protFilter==="Wochenende"&&r.we)||(protFilter==="Abgewählt"&&dislikedBy(r.id).length));
+  document.getElementById("cards").innerHTML=list.map(r=>{
+    const ws=wishes.filter(w=>w.recipe===r.id).map(w=>w.person);
+    const mine=ws.includes(me);
+    return `<article class="card ${me&&dislikedBy(r.id).includes(me)?"off":""}"><h3>${esc(r.n)}</h3>${tags(r)}${fitHtml(r)}
+      <div class="small">Gemüse: ${r.veg.map(esc).join(", ")}</div>${recDetails(r)}${actions(r)}
+      <div class="wish"><button class="wbtn" data-wish="${r.id}" aria-pressed="${mine}" ${dbReady&&me?"":"disabled"}>${mine?"Gewünscht":"Bald wieder"}</button>
+      <span class="small">${ws.length?ws.join(", ")+" "+(ws.length>1?"wünschen":"wünscht")+" sich das":"Noch keine Wünsche"}</span></div></article>`;
+  }).join("");
+}
+function renderRules(){
+  const rows=[
+    ["Marc","isst sehr gern Fleisch","Keine Kokosmilch, keine Kichererbsen, kein Falafel. Diese Zutaten kommen in keinem Rezept vor."],
+    ["Kathrin","gesund, viel Gemüse und Salat","Fleisch höchstens an 2 Tagen pro Woche. Ziel: 30 verschiedene Gemüsesorten pro Woche, der Zähler im Wochenplan zeigt den Stand."],
+    ["Julie","gern vegetarisch, isst auch Fleisch","Keine Pilze, keine Erbsen. Lieblinge: Gulasch mit Spätzle, Schupfnudeln mit Sauerkraut, Kartoffelbrei, Lasagne, Hamburger, Pizza, Chicken im Cornflakesmantel."],
+    ["Jil","isst gern Fleisch","Keine Pilze, keine Erbsen. Gleiche Lieblingsgerichte wie Julie."],
+    ["Alle","Planungsregeln","Mo–Fr, max. 30 Min. Fleisch bevorzugt Hähnchenbrust und Rinderhack, Schweinefilet selten. Einmal pro Woche Fisch, vor allem Lachs; zählt nicht als Fleischtag. Beilagen wechseln zwischen Nudeln, Kartoffeln, Reis, nie zweimal hintereinander. Freitags gern ein Kinderliebling. Wünsche aus der Rezeptliste werden beim nächsten Vorschlag bevorzugt. Rezepte, die jemand abgewählt hat, werden nicht mehr automatisch vorgeschlagen."]
+  ];
+  document.getElementById("rules").innerHTML=rows.map(([n,a,b])=>`<article class="card"><div class="label">${a}</div><h3>${n}</h3><p style="margin:4px 0 0">${b}</p></article>`).join("");
+}
+function render(){renderWho();renderWeek();renderCards()}
+
+// ---------- Aktionen ----------
+function notice(t){const n=document.getElementById("notice");n.textContent=t||"";n.hidden=!t}
+function updNotice(){
+  if(!dbReady) notice("Keine Verbindung zur Datenbank. Plan und Rezepte sind sichtbar, Abstimmen und Speichern gehen gerade nicht.");
+  else if(!me) notice("Wähle oben aus, wer du bist. Dann kannst du abstimmen und Wünsche markieren.");
+  else notice("");
+}
+async function savePlan(days){
+  const key=isoKey(mondayOf(weekOffset));
+  plans[key]=days;render();
+  if(!db) return;
+  try{await db.doc("plans/"+key).set({week:key,days,by:me||"",at:new Date().toISOString()})}
+  catch(e){notice("Plan konnte nicht gespeichert werden: "+(e.message||e.code))}
+}
+async function vote(day,v){
+  const key=isoKey(mondayOf(weekOffset)), recipe=currentPlan()[day];
+  const ref=db.doc("votes/"+key+"_"+day+"_"+me);
+  const cur=votes.find(x=>x.week===key&&x.day===day&&x.person===me&&x.recipe===recipe);
+  try{ if(cur&&cur.v===v) await ref.delete(); else await ref.set({week:key,day,recipe,person:me,v}); }
+  catch(e){notice("Stimme konnte nicht gespeichert werden: "+(e.message||e.code))}
+}
+async function wish(id){
+  const ref=db.doc("wishes/"+me+"_"+id);
+  const has=wishes.some(w=>w.person===me&&w.recipe===id);
+  try{ if(has) await ref.delete(); else await ref.set({person:me,recipe:id,at:new Date().toISOString()}); }
+  catch(e){notice("Wunsch konnte nicht gespeichert werden: "+(e.message||e.code))}
+}
+async function toggleDislike(id){
+  const ref=db.doc("dislikes/"+me+"_"+id), has=dislikedBy(id).includes(me);
+  try{ if(has) await ref.delete(); else await ref.set({person:me,recipe:id,at:new Date().toISOString()}); }
+  catch(e){notice("Konnte nicht gespeichert werden: "+(e.message||e.code))}
+}
+let editing=null;
+function openEdit(id){
+  editing=id;const r=id?BY[id]:{n:"",t:30,side:"Nudeln",p:"veg",flex:"",kid:0,we:0,veg:[],zut:[],st:[]};
+  const f=document.getElementById("editForm");
+  f.elements.n.value=r.n;f.elements.t.value=r.t;f.elements.side.value=r.side;f.elements.p.value=r.p;f.elements.flex.value=r.flex||"";
+  f.elements.kid.checked=!!r.kid;f.elements.we.checked=!!r.we;
+  f.elements.veg.value=r.veg.join(", ");f.elements.zut.value=r.zut.join("\n");f.elements.st.value=r.st.join("\n");
+  document.getElementById("editTitle").textContent=id?"Rezept bearbeiten":"Neues Rezept";
+  const isBase=id&&BASE.some(b=>b.id===id);
+  document.getElementById("resetRec").hidden=!(isBase&&overrides[id]);
+  document.getElementById("delRec").hidden=!(id&&!isBase);
+  document.getElementById("delConfirm").hidden=true;
+  document.getElementById("f-url").value="";
+  document.getElementById("impMsg").textContent="Link einfügen, „Laden“ tippen, dann prüfen und speichern.";
+  document.getElementById("editDlg").showModal();
+}
+async function saveEdit(){
+  const e=document.getElementById("editForm").elements, lines=s=>s.split("\n").map(x=>x.trim()).filter(Boolean);
+  const n=e.n.value.trim();if(!n){e.n.focus();return}
+  const id=editing||("c"+Date.now().toString(36)), isBase=BASE.some(b=>b.id===id), old=BY[id]||{};
+  const rec={id,n,t:Math.max(5,+e.t.value||30),side:e.side.value,p:e.p.value,flex:e.flex.value.trim(),kid:e.kid.checked?1:0,we:e.we.checked?1:0,
+    selten:old.selten||(e.p.value==="schwein"?1:0),veg:e.veg.value.split(",").map(x=>x.trim()).filter(Boolean),zut:lines(e.zut.value),st:lines(e.st.value),
+    custom:!isBase,by:me||"",at:new Date().toISOString()};
+  overrides[id]=rec;rebuild();render();document.getElementById("editDlg").close();
+  try{await db.doc("recipes/"+id).set(rec)}catch(err){notice("Rezept konnte nicht gespeichert werden: "+(err.message||err.code))}
+}
+async function removeOverride(){
+  const id=editing;delete overrides[id];rebuild();render();document.getElementById("editDlg").close();
+  try{await db.doc("recipes/"+id).delete()}catch(err){notice("Konnte nicht gespeichert werden: "+(err.message||err.code))}
+}
+document.getElementById("editForm").addEventListener("submit",ev=>{ev.preventDefault();saveEdit()});
+function swap(day){
+  const plan=[...currentPlan()];const veg=new Set(plan.flatMap(id=>BY[id].veg));
+  const cands=suggestPool().filter(r=>!plan.includes(r.id)).map(r=>{const t=[...plan];t[day]=r.id;return [r,t]}).filter(([,t])=>valid(t))
+    .map(([r,t])=>[t,score(t)+Math.random()]).sort((a,b)=>b[1]-a[1]);
+  if(cands.length) savePlan(cands[0][0]);
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.me){me=b.dataset.me;try{localStorage.setItem("kp-me",me)}catch(_){}updNotice();render();}
+  else if(b.dataset.vote) vote(+b.dataset.day,+b.dataset.vote);
+  else if(b.dataset.swap) swap(+b.dataset.swap);
+  else if(b.dataset.wish) wish(b.dataset.wish);
+  else if(b.dataset.dislike) toggleDislike(b.dataset.dislike);
+  else if(b.dataset.edit) openEdit(b.dataset.edit);
+  else if(b.id==="newRec") openEdit(null);
+  else if(b.id==="saveEdit") saveEdit();
+  else if(b.id==="impBtn") importFromUrl(b);
+  else if(b.id==="installBtn") doInstall();
+  else if(b.id==="cancelEdit") document.getElementById("editDlg").close();
+  else if(b.id==="resetRec") removeOverride();
+  else if(b.id==="delRec"){b.hidden=true;document.getElementById("delConfirm").hidden=false;}
+  else if(b.id==="delConfirm") removeOverride();
+  else if(b.dataset.filter){protFilter=b.dataset.filter;renderCards();}
+  else if(b.id==="regen") savePlan(generate(hash(isoKey(mondayOf(weekOffset))+Date.now())));
+  else if(b.id==="nextWeek"){weekOffset=1;renderWeek();}
+  else if(b.id==="prevWeek"){weekOffset=0;renderWeek();}
+  else if(b.id==="copyShop"){
+    const plan=currentPlan();const txt=plan.map((id,i)=>DAYS[i]+": "+BY[id].n+"\n- "+BY[id].zut.join("\n- ")).join("\n\n");
+    navigator.clipboard.writeText(txt).then(()=>{b.textContent="Kopiert"},()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("shop"));const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="Markiert"});
+    setTimeout(()=>b.textContent="Kopieren",2000);
+  }
+  else if(b.classList.contains("tab")){
+    document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t===b));
+    ["woche","rezepte","regeln"].forEach(v=>document.getElementById("view-"+v).hidden=b.id!=="tab-"+v);
+  }
+});
+
+renderRules();updNotice();render();
+
+// ---------- Datenbank (Supabase, Tabelle kv) ----------
+let sb=null;
+function makeDb(client){
+  const cache={}, listeners={};
+  const emit=c=>{const docs=[...(cache[c]||new Map()).entries()].map(([id,d])=>({id,exists:true,data:()=>d}));(listeners[c]||[]).forEach(f=>f({docs,size:docs.length,empty:!docs.length}))};
+  const fail=e=>{const x=new Error(e.message||"Fehler");x.code=e.code||"unavailable";return x};
+  async function load(c){const {data,error}=await client.from("kv").select("id,data").eq("collection",c);if(error)throw fail(error);cache[c]=new Map(data.map(r=>[r.id,r.data]));emit(c)}
+  async function reloadAll(){for(const c of Object.keys(listeners)){try{await load(c)}catch(e){}}}
+  client.channel("kv-changes").on("postgres_changes",{event:"*",schema:"public",table:"kv"},p=>{
+    const row=(p.new&&p.new.collection)?p.new:p.old;if(!row||!row.collection||!cache[row.collection])return;
+    if(p.eventType==="DELETE")cache[row.collection].delete(row.id);else cache[row.collection].set(row.id,row.data);
+    emit(row.collection);
+  }).subscribe();
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")reloadAll()});
+  return {
+    collection(c){return {onSnapshot(fn,err){(listeners[c]=listeners[c]||[]).push(fn);load(c).catch(e=>err&&err(e));return()=>{listeners[c]=listeners[c].filter(f=>f!==fn)}}}},
+    doc(path){const [c,id]=path.split("/");return {
+      async set(data){(cache[c]=cache[c]||new Map()).set(id,data);emit(c);const {error}=await client.from("kv").upsert({collection:c,id,data,updated_at:new Date().toISOString()});if(error)throw fail(error)},
+      async delete(){if(cache[c]){cache[c].delete(id);emit(c)}const {error}=await client.from("kv").delete().eq("collection",c).eq("id",id);if(error)throw fail(error)}
+    }}
+  };
+}
+async function importFromUrl(btn){
+  const url=document.getElementById("f-url").value.trim(), msg=document.getElementById("impMsg");
+  if(!/^https?:\/\//i.test(url)){msg.textContent="Bitte einen vollständigen Link mit https:// einfügen.";return}
+  if(!sb){msg.textContent="Import geht nur mit Datenbankverbindung.";return}
+  btn.disabled=true;msg.textContent="Lade Rezept …";
+  try{
+    const {data,error}=await sb.functions.invoke("import-recipe",{body:{url}});
+    if(error||!data||data.error)throw new Error((data&&data.error)||(error&&error.message)||"unbekannt");
+    const e=document.getElementById("editForm").elements;
+    if(data.name)e.n.value=data.name;
+    if(data.minutes)e.t.value=data.minutes;
+    if(data.ingredients&&data.ingredients.length)e.zut.value=data.ingredients.join("\n");
+    if(data.steps&&data.steps.length)e.st.value=data.steps.join("\n");
+    const known=[...new Set(R.flatMap(r=>r.veg))], txt=(data.ingredients||[]).join(" ").toLowerCase();
+    const found=known.filter(v=>txt.includes(v.toLowerCase()));
+    if(found.length&&!e.veg.value)e.veg.value=found.join(", ");
+    const low=txt;e.p.value=/lachs|fisch|forelle|kabeljau/.test(low)?"lachs":/hähnchen|huhn|hühnchen|pute/.test(low)?"haehnchen":/hackfleisch|rinderhack|hack/.test(low)?"rinderhack":/schwein/.test(low)?"schwein":/rind/.test(low)?"rind":"veg";
+    e.side.value=/reis/.test(low)?"Reis":/kartoffel|gnocchi|schupfnudel/.test(low)?"Kartoffeln":/spätzle/.test(low)?"Spätzle":/nudel|pasta|spaghetti|penne|tagliatelle|lasagne/.test(low)?"Nudeln":e.side.value;
+    msg.textContent="Übernommen. Bitte Beilage, Hauptzutat und Gemüse prüfen, dann speichern.";
+  }catch(err){msg.textContent="Konnte das Rezept nicht lesen ("+err.message+"). Manche Seiten erlauben das nicht, dann bitte von Hand eintragen."}
+  finally{btn.disabled=false}
+}
+// ---------- Installation ----------
+let installEvt=null;
+const standalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;if(!standalone())document.getElementById("installBtn").hidden=false});
+if(!standalone()&&/iphone|ipad|ipod/i.test(navigator.userAgent))document.getElementById("installBtn").hidden=false;
+async function doInstall(){
+  if(installEvt){installEvt.prompt();await installEvt.userChoice;installEvt=null;document.getElementById("installBtn").hidden=true}
+  else notice("iPhone: In Safari unten auf „Teilen“ tippen, dann „Zum Home-Bildschirm“. Danach startet der Küchenplan wie eine App.");
+}
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+
+(async()=>{
+  try{const C=window.KP_CONFIG||{};if(window.supabase&&C.url&&!C.url.startsWith("__")){sb=supabase.createClient(C.url,C.key);db=makeDb(sb)}else db=null}catch(e){db=null}
+  if(!db){updNotice();return}
+  dbReady=true;updNotice();render();
+  const err=e=>{notice("Verbindung zu gespeicherten Daten unterbrochen. Seite neu laden.")};
+  db.collection("plans").onSnapshot(s=>{plans={};s.docs.forEach(d=>{const x=d.data();if(x&&Array.isArray(x.days))plans[x.week]=x.days});render()},err);
+  db.collection("votes").onSnapshot(s=>{votes=s.docs.map(d=>d.data()).filter(Boolean);renderWeek()},err);
+  db.collection("wishes").onSnapshot(s=>{wishes=s.docs.map(d=>d.data()).filter(Boolean);renderCards()},err);
+  db.collection("dislikes").onSnapshot(s=>{dislikes=s.docs.map(d=>d.data()).filter(Boolean);render()},err);
+  db.collection("recipes").onSnapshot(s=>{overrides={};s.docs.forEach(d=>{const x=d.data();if(x&&x.id&&Array.isArray(x.veg))overrides[x.id]=x});rebuild();render()},err);
+})();
+</script>
+</body>
+</html>
