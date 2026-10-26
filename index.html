@@ -124,6 +124,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .abtn.on{border-color:var(--tomato);color:var(--tomato)}
 .abtn:disabled{opacity:.5;cursor:default}
 .fit span.no{border-color:var(--tomato);color:var(--tomato);text-decoration:line-through}
+.fit span.adapt{border-style:dashed;border-color:var(--corn);color:var(--ink)}
 .card.off{opacity:.6}
 :root{--sea:#24689e;--sea-soft:#deeaf4}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sea:#8cc0ea;--sea-soft:#1c2e3d}}
@@ -169,7 +170,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       </div>
     </div>
     <div class="legend">
-      <span>Passt zu: <span class="fit" style="display:inline-flex"><span class="fav">Liebling</span><span>passt</span></span></span>
+      <span>Passt zu: <span class="fit" style="display:inline-flex"><span class="fav">Liebling</span><span>passt</span><span class="adapt">anpassen</span><span class="no">passt nicht</span></span></span>
       <span>Bei 2× „Nein“ kann das Gericht getauscht werden.</span>
     </div>
     <div class="grid">
@@ -241,7 +242,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script>
-const PEOPLE=["Marc","Kathrin","Julie","Jil"];
+const PEOPLE=["Marc","Kathrin","Kim","Julie","Jil"];
 const DAYS=["Mo","Di","Mi","Do","Fr"];
 const PROT={veg:"vegetarisch",haehnchen:"Hähnchen",rinderhack:"Rinderhack",schwein:"Schweinefilet",rind:"Rind",lachs:"Lachs"};
 // Beilage-Gruppe für die Rotation: Nudeln, Kartoffeln, Reis, Brot, Spätzle
@@ -340,11 +341,21 @@ const DEFAULT_PLANS={"2026-W44":["r10","r02","r26","r24","r05"]};
 const isFish=r=>r.p==="lachs";
 const isMeat=r=>r.p!=="veg"&&r.p!=="lachs";
 
+// Kim: keine Milchprodukte (auch keine Butter, Pflanzen- oder Kokosmilch), Rind nur als Hack
+const DAIRY=/milch|butter|käse|sahne|schmand|joghurt|quark|ricotta|mozzarella|feta|parmesan|halloumi|cheddar|béchamel|crème|creme/i;
+const DAIRY_CORE=/käse|ricotta|rahm|sahne|lasagne|tortellini/i;
+function kimFit(r){
+  if(r.p==="rind") return ["x","kein Rindfleisch (nur Hack)"];
+  const w=[...new Set(r.zut.flatMap(z=>z.match(/[a-zäöüß-]*(milch|butter|käse|sahne|schmand|joghurt|quark|ricotta|mozzarella|feta|parmesan|halloumi|cheddar|crème|creme)[a-zäöüß-]*/gi)||[]))];
+  if(w.length&&DAIRY_CORE.test(r.n)) return ["x","Milchprodukt ist Hauptzutat"];
+  return w.length? ["adapt","milchfrei anpassen: ohne "+w.join(", ")] : ["ok","milchfrei"];
+}
 function fit(r){
   const meat=isMeat(r), many=r.veg.length>=5;
   return {
     Marc: meat||r.flex? ["fav", meat?"Fleisch":"mit Fleisch-Option"]:isFish(r)?["ok","Fisch"]:["ok","vegetarisch"],
     Kathrin: isFish(r)? ["fav","Fisch, leicht und gesund"]: many&&!meat? ["fav","viel Gemüse, ohne Fleisch"]: meat? ["ok","zählt als Fleischtag"]: many? ["fav","viel Gemüse"]:["ok",""],
+    Kim: kimFit(r),
     Julie: r.kid? ["fav","Lieblingsgericht"]: isFish(r)? ["ok","Fisch"]: !meat? ["fav","vegetarisch"]:["ok","isst auch Fleisch"],
     Jil: r.kid? ["fav","Lieblingsgericht"]: isFish(r)? ["ok","Fisch"]: meat? ["fav","Fleisch"]: r.flex? ["ok","mit Fleisch-Option"]:["ok",""]
   };
@@ -395,7 +406,7 @@ function currentPlan(){const k=isoKey(mondayOf(weekOffset));const p=plans[k]||DE
 
 // ---------- Rendering ----------
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
-function fitHtml(r){const f=fit(r),dl=dislikedBy(r.id);return '<div class="fit">'+PEOPLE.map(p=>dl.includes(p)?`<span class="no" title="schmeckt nicht">${p}</span>`:`<span class="${f[p][0]==="fav"?"fav":""}" title="${esc(f[p][1])}">${p}</span>`).join("")+"</div>"}
+function fitHtml(r){const f=fit(r),dl=dislikedBy(r.id);return '<div class="fit">'+PEOPLE.map(p=>dl.includes(p)?`<span class="no" title="schmeckt nicht">${p}</span>`:`<span class="${f[p][0]==="fav"?"fav":f[p][0]==="adapt"?"adapt":f[p][0]==="x"?"no":""}" title="${esc(f[p][1])}">${p}</span>`).join("")+"</div>"}
 function actions(r){
   const mine=me&&dislikedBy(r.id).includes(me), on=dbReady&&me;
   return `<div class="acts"><button class="abtn ${mine?"on":""}" data-dislike="${r.id}" aria-pressed="${!!mine}" ${on?"":"disabled"}>${mine?"Abgewählt, wieder zulassen":"Schmeckt mir nicht"}</button><button class="abtn" data-edit="${r.id}" ${dbReady?"":"disabled"}>Bearbeiten</button></div>`;
@@ -465,6 +476,7 @@ function renderRules(){
   const rows=[
     ["Marc","isst sehr gern Fleisch","Keine Kokosmilch, keine Kichererbsen, kein Falafel. Diese Zutaten kommen in keinem Rezept vor."],
     ["Kathrin","gesund, viel Gemüse und Salat","Fleisch höchstens an 2 Tagen pro Woche. Ziel: 30 verschiedene Gemüsesorten pro Woche, der Zähler im Wochenplan zeigt den Stand."],
+    ["Kim","milchfrei","Keine Milchprodukte: keine Milch, Butter, Käse, Sahne, Joghurt, auch keine Pflanzen- oder Kokosmilch. Rind nur als Hackfleisch. Gestrichelt markierte Gerichte gehen mit Austausch (z. B. Öl statt Butter, Käse weglassen); durchgestrichen passt nicht."],
     ["Julie","gern vegetarisch, isst auch Fleisch","Keine Pilze, keine Erbsen. Lieblinge: Gulasch mit Spätzle, Schupfnudeln mit Sauerkraut, Kartoffelbrei, Lasagne, Hamburger, Pizza, Chicken im Cornflakesmantel."],
     ["Jil","isst gern Fleisch","Keine Pilze, keine Erbsen. Gleiche Lieblingsgerichte wie Julie."],
     ["Alle","Planungsregeln","Mo–Fr, max. 30 Min. Fleisch bevorzugt Hähnchenbrust und Rinderhack, Schweinefilet selten. Einmal pro Woche Fisch, vor allem Lachs; zählt nicht als Fleischtag. Beilagen wechseln zwischen Nudeln, Kartoffeln, Reis, nie zweimal hintereinander. Freitags gern ein Kinderliebling. Wünsche aus der Rezeptliste werden beim nächsten Vorschlag bevorzugt. Rezepte, die jemand abgewählt hat, werden nicht mehr automatisch vorgeschlagen."]

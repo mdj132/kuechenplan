@@ -1,5 +1,5 @@
 // Offline-Cache: App-Hülle wird gespeichert, Daten kommen immer frisch aus Supabase.
-const CACHE = "kuechenplan-v2";
+const CACHE = "kuechenplan-v3";
 const SHELL = ["./", "index.html", "config.js", "manifest.webmanifest", "icon-192.png", "icon-512.png",
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
