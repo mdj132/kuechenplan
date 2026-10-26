@@ -126,6 +126,10 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .fit span.no{border-color:var(--tomato);color:var(--tomato);text-decoration:line-through}
 .fit span.adapt{border-style:dashed;border-color:var(--corn);color:var(--ink)}
 .card.off{opacity:.6}
+.rulehead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.rulecard textarea,.rulecard input{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px}
+.rulecard textarea{min-height:120px;margin-top:6px}
+.rulecard .by{font-size:12.5px;color:var(--muted);margin-top:6px}
 :root{--sea:#24689e;--sea-soft:#deeaf4}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sea:#8cc0ea;--sea-soft:#1c2e3d}}
 :root[data-theme="dark"]{--sea:#8cc0ea;--sea-soft:#1c2e3d}
@@ -208,6 +212,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   </section>
 
   <section id="view-regeln" hidden>
+    <div class="rulehead"><p class="sub" style="margin:0">Jeder kann hier ändern, was er mag oder nicht mag. Änderungen sind sofort für alle sichtbar.</p>
+      <button class="btn" id="copyRules">Für Claude kopieren</button></div>
     <div class="cards" id="rules"></div>
   </section>
 </div>
@@ -472,8 +478,7 @@ function renderCards(){
       <span class="small">${ws.length?ws.join(", ")+" "+(ws.length>1?"wünschen":"wünscht")+" sich das":"Noch keine Wünsche"}</span></div></article>`;
   }).join("");
 }
-function renderRules(){
-  const rows=[
+const RULES_DEFAULT=[
     ["Marc","isst sehr gern Fleisch","Keine Kokosmilch, keine Kichererbsen, kein Falafel. Diese Zutaten kommen in keinem Rezept vor."],
     ["Kathrin","gesund, viel Gemüse und Salat","Fleisch höchstens an 2 Tagen pro Woche. Ziel: 30 verschiedene Gemüsesorten pro Woche, der Zähler im Wochenplan zeigt den Stand."],
     ["Kim","milchfrei","Keine Milchprodukte: keine Milch, Butter, Käse, Sahne, Joghurt, auch keine Pflanzen- oder Kokosmilch. Rind nur als Hackfleisch. Gestrichelt markierte Gerichte gehen mit Austausch (z. B. Öl statt Butter, Käse weglassen); durchgestrichen passt nicht."],
@@ -481,8 +486,33 @@ function renderRules(){
     ["Jil","isst gern Fleisch","Keine Pilze, keine Erbsen. Gleiche Lieblingsgerichte wie Julie."],
     ["Alle","Planungsregeln","Mo–Fr, max. 30 Min. Fleisch bevorzugt Hähnchenbrust und Rinderhack, Schweinefilet selten. Einmal pro Woche Fisch, vor allem Lachs; zählt nicht als Fleischtag. Beilagen wechseln zwischen Nudeln, Kartoffeln, Reis, nie zweimal hintereinander. Freitags gern ein Kinderliebling. Wünsche aus der Rezeptliste werden beim nächsten Vorschlag bevorzugt. Rezepte, die jemand abgewählt hat, werden nicht mehr automatisch vorgeschlagen."]
   ];
-  document.getElementById("rules").innerHTML=rows.map(([n,a,b])=>`<article class="card"><div class="label">${a}</div><h3>${n}</h3><p style="margin:4px 0 0">${b}</p></article>`).join("");
+let ruleEdits={}, editingRule=null;
+function rulesList(){return RULES_DEFAULT.map(([n,a,b])=>{const o=ruleEdits[n];return o?{n,a:o.a,b:o.b,by:o.by,at:o.at}:{n,a,b}})}
+function renderRules(){
+  const can=dbReady;
+  document.getElementById("rules").innerHTML=rulesList().map(r=>{
+    if(editingRule===r.n) return `<article class="card rulecard"><h3>${esc(r.n)}</h3>
+      <label class="label">Kurz<input data-rf="a" value="${esc(r.a)}"></label>
+      <label class="label" style="display:block;margin-top:8px">Mag / mag nicht / Regeln<textarea data-rf="b">${esc(r.b)}</textarea></label>
+      <div class="acts"><button class="btn primary" data-rsave="${esc(r.n)}">Speichern</button><button class="btn" data-rcancel="1">Abbrechen</button>
+      ${ruleEdits[r.n]?`<button class="abtn" data-rreset="${esc(r.n)}">Ursprungstext</button>`:""}</div></article>`;
+    return `<article class="card rulecard"><div class="label">${esc(r.a)}</div><h3>${esc(r.n)}</h3><p style="margin:4px 0 0;white-space:pre-line">${esc(r.b)}</p>
+      ${r.by?`<div class="by">Geändert von ${esc(r.by)} am ${new Date(r.at).toLocaleDateString("de-DE")}</div>`:""}
+      <div class="acts"><button class="abtn" data-redit="${esc(r.n)}" ${can?"":"disabled"}>Bearbeiten</button></div></article>`;
+  }).join("");
 }
+async function saveRule(n){
+  const card=document.querySelector(`[data-rsave="${CSS.escape(n)}"]`).closest(".rulecard");
+  const a=card.querySelector('[data-rf="a"]').value.trim(), b=card.querySelector('[data-rf="b"]').value.trim();
+  const rec={n,a,b,by:me||"",at:new Date().toISOString()};
+  ruleEdits[n]=rec;editingRule=null;renderRules();
+  try{await db.doc("rules/"+n).set(rec)}catch(e){notice("Konnte nicht gespeichert werden: "+(e.message||e.code))}
+}
+async function resetRule(n){
+  delete ruleEdits[n];editingRule=null;renderRules();
+  try{await db.doc("rules/"+n).delete()}catch(e){notice("Konnte nicht gespeichert werden: "+(e.message||e.code))}
+}
+function rulesText(){return "Küchenplan – Wer mag was (Stand "+new Date().toLocaleDateString("de-DE")+")\n\n"+rulesList().map(r=>r.n+" ("+r.a+"): "+r.b).join("\n\n")}
 function render(){renderWho();renderWeek();renderCards()}
 
 // ---------- Aktionen ----------
@@ -570,6 +600,15 @@ document.addEventListener("click",e=>{
   else if(b.id==="resetRec") removeOverride();
   else if(b.id==="delRec"){b.hidden=true;document.getElementById("delConfirm").hidden=false;}
   else if(b.id==="delConfirm") removeOverride();
+  else if(b.dataset.redit){editingRule=b.dataset.redit;renderRules();}
+  else if(b.dataset.rcancel){editingRule=null;renderRules();}
+  else if(b.dataset.rsave) saveRule(b.dataset.rsave);
+  else if(b.dataset.rreset) resetRule(b.dataset.rreset);
+  else if(b.id==="copyRules"){
+    const txt=rulesText();
+    navigator.clipboard.writeText(txt).then(()=>{b.textContent="Kopiert – jetzt im Chat einfügen"},()=>{b.textContent="Kopieren nicht möglich"});
+    setTimeout(()=>b.textContent="Für Claude kopieren",3000);
+  }
   else if(b.dataset.filter){protFilter=b.dataset.filter;renderCards();}
   else if(b.id==="regen") savePlan(generate(hash(isoKey(mondayOf(weekOffset))+Date.now())));
   else if(b.id==="nextWeek"){weekOffset=1;renderWeek();}
@@ -645,12 +684,13 @@ if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.ser
 (async()=>{
   try{const C=window.KP_CONFIG||{};if(window.supabase&&C.url&&!C.url.startsWith("__")){sb=supabase.createClient(C.url,C.key);db=makeDb(sb)}else db=null}catch(e){db=null}
   if(!db){updNotice();return}
-  dbReady=true;updNotice();render();
+  dbReady=true;updNotice();render();renderRules();
   const err=e=>{notice("Verbindung zu gespeicherten Daten unterbrochen. Seite neu laden.")};
   db.collection("plans").onSnapshot(s=>{plans={};s.docs.forEach(d=>{const x=d.data();if(x&&Array.isArray(x.days))plans[x.week]=x.days});render()},err);
   db.collection("votes").onSnapshot(s=>{votes=s.docs.map(d=>d.data()).filter(Boolean);renderWeek()},err);
   db.collection("wishes").onSnapshot(s=>{wishes=s.docs.map(d=>d.data()).filter(Boolean);renderCards()},err);
   db.collection("dislikes").onSnapshot(s=>{dislikes=s.docs.map(d=>d.data()).filter(Boolean);render()},err);
+  db.collection("rules").onSnapshot(s=>{ruleEdits={};s.docs.forEach(d=>{const x=d.data();if(x&&x.n)ruleEdits[x.n]=x});if(!editingRule)renderRules()},err);
   db.collection("recipes").onSnapshot(s=>{overrides={};s.docs.forEach(d=>{const x=d.data();if(x&&x.id&&Array.isArray(x.veg))overrides[x.id]=x});rebuild();render()},err);
 })();
 </script>
